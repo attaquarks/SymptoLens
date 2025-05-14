@@ -21,7 +21,7 @@ export const SymptomForm: React.FC<SymptomFormProps> = ({ onSubmitSuccess, onSub
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
-  
+
   const { toast } = useToast();
 
   const form = useForm({
@@ -45,7 +45,7 @@ export const SymptomForm: React.FC<SymptomFormProps> = ({ onSubmitSuccess, onSub
     // Process each file
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      
+
       // Only accept images
       if (!file.type.startsWith('image/')) {
         toast({
@@ -55,10 +55,10 @@ export const SymptomForm: React.FC<SymptomFormProps> = ({ onSubmitSuccess, onSub
         });
         continue;
       }
-      
+
       // Create preview URL
       const imageUrl = URL.createObjectURL(file);
-      
+
       newFiles.push(file);
       newImageUrls.push(imageUrl);
     }
@@ -66,7 +66,7 @@ export const SymptomForm: React.FC<SymptomFormProps> = ({ onSubmitSuccess, onSub
     // Update state
     setImageFiles([...imageFiles, ...newFiles]);
     setUploadedImages([...uploadedImages, ...newImageUrls]);
-    
+
     // Update form
     form.setValue('uploadedImages', [...uploadedImages, ...newImageUrls]);
   };
@@ -74,17 +74,17 @@ export const SymptomForm: React.FC<SymptomFormProps> = ({ onSubmitSuccess, onSub
   const removeImage = (index: number) => {
     const newImages = [...uploadedImages];
     const newFiles = [...imageFiles];
-    
+
     // Release the object URL to avoid memory leaks
     URL.revokeObjectURL(newImages[index]);
-    
+
     // Remove the image and file from arrays
     newImages.splice(index, 1);
     newFiles.splice(index, 1);
-    
+
     setUploadedImages(newImages);
     setImageFiles(newFiles);
-    
+
     // Update form
     form.setValue('uploadedImages', newImages);
   };
@@ -93,29 +93,29 @@ export const SymptomForm: React.FC<SymptomFormProps> = ({ onSubmitSuccess, onSub
     if (onSubmit) {
       onSubmit();
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       // First, upload any images
       let uploadedImagePaths: string[] = [];
-      
+
       if (imageFiles.length > 0) {
         const formData = new FormData();
         imageFiles.forEach(file => {
           formData.append('images', file);
         });
-        
+
         try {
           const response = await fetch('/api/upload', {
             method: 'POST',
             body: formData
           });
-          
+
           if (!response.ok) {
             throw new Error('Failed to upload images');
           }
-          
+
           const result = await response.json();
           uploadedImagePaths = result.files.map((file: any) => file.path);
         } catch (error) {
@@ -127,27 +127,27 @@ export const SymptomForm: React.FC<SymptomFormProps> = ({ onSubmitSuccess, onSub
           });
         }
       }
-      
+
       // Now submit the symptom data with image paths
       const analysisData = {
         ...data,
         uploadedImages: uploadedImagePaths
       };
-      
+
       // Create symptom record and get analysis
       const response = await apiRequest(
         'POST',
         '/api/symptoms',
         analysisData
       );
-      
+
       if (response) {
         onSubmitSuccess(response);
         toast({
           title: "Analysis complete",
           description: "Your symptoms have been analyzed successfully",
         });
-        
+
         // Reset form
         form.reset();
         setUploadedImages([]);
@@ -200,7 +200,7 @@ export const SymptomForm: React.FC<SymptomFormProps> = ({ onSubmitSuccess, onSub
                 </FormItem>
               )}
             />
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Duration field */}
               <FormField
@@ -221,7 +221,7 @@ export const SymptomForm: React.FC<SymptomFormProps> = ({ onSubmitSuccess, onSub
                   </FormItem>
                 )}
               />
-              
+
               {/* Severity field */}
               <FormField
                 control={form.control}
@@ -250,7 +250,7 @@ export const SymptomForm: React.FC<SymptomFormProps> = ({ onSubmitSuccess, onSub
                   </FormItem>
                 )}
               />
-              
+
               {/* Body location field */}
               <FormField
                 control={form.control}
@@ -271,7 +271,7 @@ export const SymptomForm: React.FC<SymptomFormProps> = ({ onSubmitSuccess, onSub
                 )}
               />
             </div>
-            
+
             {/* Image upload */}
             <div className="space-y-4">
               <FormLabel className="flex items-center">
@@ -297,7 +297,7 @@ export const SymptomForm: React.FC<SymptomFormProps> = ({ onSubmitSuccess, onSub
                   </p>
                 </label>
               </div>
-              
+
               {/* Preview uploaded images */}
               {uploadedImages.length > 0 && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-4">
@@ -323,7 +323,7 @@ export const SymptomForm: React.FC<SymptomFormProps> = ({ onSubmitSuccess, onSub
                 </div>
               )}
             </div>
-            
+
             {/* Submit button */}
             <Button 
               type="submit" 
