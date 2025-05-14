@@ -1,0 +1,43 @@
+> rest-express@1.0.0 dev
+7:42:30 AM [express] serving on port 5000s
+Error in symptom analysis: ReferenceError: processBertResults is not defined
+    at getHuggingFaceAnalysis (/home/runner/workspace/server/services/aiService.ts:52:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async Promise.all (index 0)
+    at async analyzeSymptoms (/home/runner/workspace/server/services/aiService.ts:20:40)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:19:24)
+Error creating symptom: ReferenceError: getDefaultNextSteps is not defined
+    at getDefaultResponse (/home/runner/workspace/server/services/aiService.ts:129:16)
+    at analyzeSymptoms (/home/runner/workspace/server/services/aiService.ts:37:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:19:24)
+7:43:17 AM [express] POST /api/symptoms 500 in 226ms :: {"message":"Failed to process symptom data"}
+Error loading conditions from database: PostgresError: relation "medical_conditions" does not exist
+    at ErrorResponse (file:///home/runner/workspace/node_modules/postgres/src/connection.js:788:26)
+    at handle (file:///home/runner/workspace/node_modules/postgres/src/connection.js:474:6)
+    at TLSSocket.data (file:///home/runner/workspace/node_modules/postgres/src/connection.js:315:9)
+    at TLSSocket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TLSWrap.onStreamRead (node:internal/stream_base_commons:191:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '42P01',
+  position: '138',
+  file: 'parse_relation.c',
+  line: '1392',
+  routine: 'parserOpenTable'
+}
+Error in symptom analysis: ReferenceError: processBertResults is not defined
+    at getHuggingFaceAnalysis (/home/runner/workspace/server/services/aiService.ts:52:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async Promise.all (index 0)
+    at async analyzeSymptoms (/home/runner/workspace/server/services/aiService.ts:20:40)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:19:24)
+Error creating symptom: ReferenceError: getDefaultNextSteps is not defined
+    at getDefaultResponse (/home/runner/workspace/server/services/aiService.ts:129:16)
+    at analyzeSymptoms (/home/runner/workspace/server/services/aiService.ts:37:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:19:24)
+7:43:21 AM [express] POST /api/symptoms 500 in 88ms :: {"message":"Failed to process symptom data"}
