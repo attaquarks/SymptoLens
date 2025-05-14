@@ -1,8 +1,12 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
+import { seedMedicalConditions } from "./db";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// Initialize database
+seedMedicalConditions().catch(console.error);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 

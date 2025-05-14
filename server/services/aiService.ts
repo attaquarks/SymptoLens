@@ -52,6 +52,30 @@ async function getHuggingFaceAnalysis(description: string) {
   return processBertResults(result);
 }
 
+function processBertResults(results: any) {
+  const conditions = [];
+  // Process BERT model output into standardized format
+  for (const prediction of results) {
+    conditions.push({
+      name: prediction.label,
+      score: prediction.score,
+      relevance: prediction.score > 0.7 ? "high" : prediction.score > 0.5 ? "medium" : "low"
+    });
+  }
+  return conditions;
+}
+
+function getDefaultNextSteps(): NextStep[] {
+  return [{
+    type: 'consult',
+    title: 'Consult Healthcare Provider',
+    description: 'Since we cannot make a confident prediction, please consult a qualified healthcare provider.',
+    suggestions: ['Schedule an appointment with your primary care physician',
+                 'Document your symptoms and their duration',
+                 'Note any factors that worsen or improve the symptoms']
+  }];
+}
+
 async function getKnowledgeBaseAnalysis(input: AnalysisInput) {
   const conditions = await knowledgeBase.getAllConditions();
   const matchedConditions = [];
