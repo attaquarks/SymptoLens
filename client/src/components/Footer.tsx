@@ -20,39 +20,87 @@ const Footer: React.FC = () => {
           
           <div className="md:col-span-3 grid grid-cols-2 md:grid-cols-3 gap-8">
             <div>
-              <h3 className="text-sm font-semibold uppercase text-neutral-300 mb-4">About</h3>
+              <h3 className="text-sm font-semibold uppercase text-neutral-300 mb-4 flex items-center">
+                <span className="material-icons text-primary text-xs mr-2">info</span>
+                About
+              </h3>
               <ul className="space-y-3 text-sm">
-                <li><Link href="/about"><span className="text-neutral-400 hover:text-white cursor-pointer">Our Mission</span></Link></li>
-                <li><Link href="/about"><span className="text-neutral-400 hover:text-white cursor-pointer">How It Works</span></Link></li>
-                <li><Link href="/about"><span className="text-neutral-400 hover:text-white cursor-pointer">Technology</span></Link></li>
-                <li><Link href="/about"><span className="text-neutral-400 hover:text-white cursor-pointer">Privacy & Security</span></Link></li>
+                <li><Link href="/about"><span className="text-neutral-400 hover:text-white cursor-pointer flex items-center">
+                  <span className="material-icons text-primary text-xs mr-1">psychology</span>
+                  Our Mission
+                </span></Link></li>
+                <li><Link href="/about"><span className="text-neutral-400 hover:text-white cursor-pointer flex items-center">
+                  <span className="material-icons text-primary text-xs mr-1">tips_and_updates</span>
+                  How It Works
+                </span></Link></li>
+                <li><Link href="/about"><span className="text-neutral-400 hover:text-white cursor-pointer flex items-center">
+                  <span className="material-icons text-primary text-xs mr-1">code</span>
+                  Technology
+                </span></Link></li>
+                <li><Link href="/about"><span className="text-neutral-400 hover:text-white cursor-pointer flex items-center">
+                  <span className="material-icons text-primary text-xs mr-1">security</span>
+                  Privacy & Security
+                </span></Link></li>
               </ul>
             </div>
             
             <div>
-              <h3 className="text-sm font-semibold uppercase text-neutral-300 mb-4">Resources</h3>
+              <h3 className="text-sm font-semibold uppercase text-neutral-300 mb-4 flex items-center">
+                <span className="material-icons text-primary text-xs mr-2">menu_book</span>
+                Resources
+              </h3>
               <ul className="space-y-3 text-sm">
-                <li><Link href="/help"><span className="text-neutral-400 hover:text-white cursor-pointer">Health Library</span></Link></li>
-                <li><Link href="/help"><span className="text-neutral-400 hover:text-white cursor-pointer">Common Symptoms</span></Link></li>
-                <li><Link href="/help"><span className="text-neutral-400 hover:text-white cursor-pointer">Find a Doctor</span></Link></li>
-                <li><Link href="/help"><span className="text-neutral-400 hover:text-white cursor-pointer">Research</span></Link></li>
+                <li><Link href="/help"><span className="text-neutral-400 hover:text-white cursor-pointer flex items-center">
+                  <span className="material-icons text-primary text-xs mr-1">menu_book</span>
+                  Health Library
+                </span></Link></li>
+                <li><Link href="/help"><span className="text-neutral-400 hover:text-white cursor-pointer flex items-center">
+                  <span className="material-icons text-primary text-xs mr-1">description</span>
+                  Common Symptoms
+                </span></Link></li>
+                <li><Link href="/help"><span className="text-neutral-400 hover:text-white cursor-pointer flex items-center">
+                  <span className="material-icons text-primary text-xs mr-1">local_hospital</span>
+                  Find a Doctor
+                </span></Link></li>
+                <li><Link href="/help"><span className="text-neutral-400 hover:text-white cursor-pointer flex items-center">
+                  <span className="material-icons text-primary text-xs mr-1">psychology_alt</span>
+                  Research
+                </span></Link></li>
               </ul>
             </div>
             
             <div>
-              <h3 className="text-sm font-semibold uppercase text-neutral-300 mb-4">Legal</h3>
+              <h3 className="text-sm font-semibold uppercase text-neutral-300 mb-4 flex items-center">
+                <span className="material-icons text-primary text-xs mr-2">gavel</span>
+                Legal
+              </h3>
               <ul className="space-y-3 text-sm">
-                <li><a href="#" className="text-neutral-400 hover:text-white">Terms of Service</a></li>
-                <li><a href="#" className="text-neutral-400 hover:text-white">Privacy Policy</a></li>
-                <li><a href="#" className="text-neutral-400 hover:text-white">Disclaimer</a></li>
-                <li><a href="#" className="text-neutral-400 hover:text-white">Contact Us</a></li>
+                <li><a href="#" className="text-neutral-400 hover:text-white flex items-center">
+                  <span className="material-icons text-primary text-xs mr-1">description</span>
+                  Terms of Service
+                </a></li>
+                <li><a href="#" className="text-neutral-400 hover:text-white flex items-center">
+                  <span className="material-icons text-primary text-xs mr-1">security</span>
+                  Privacy Policy
+                </a></li>
+                <li><a href="#" className="text-neutral-400 hover:text-white flex items-center">
+                  <span className="material-icons text-primary text-xs mr-1">info</span>
+                  Disclaimer
+                </a></li>
+                <li><a href="#" className="text-neutral-400 hover:text-white flex items-center">
+                  <span className="material-icons text-primary text-xs mr-1">email</span>
+                  Contact Us
+                </a></li>
               </ul>
             </div>
           </div>
         </div>
         
         <div className="mt-12 pt-8 border-t border-neutral-700 text-center text-neutral-400 text-sm">
-          <p>&copy; {new Date().getFullYear()} SymptoLens. All rights reserved. This tool is for educational purposes only and is not a substitute for professional medical advice.</p>
+          <p className="flex items-center justify-center">
+            <span className="material-icons text-primary text-xs mr-1">copyright</span>
+            {new Date().getFullYear()} SymptoLens. All rights reserved. This tool is for educational purposes only and is not a substitute for professional medical advice.
+          </p>
         </div>
       </div>
     </footer>

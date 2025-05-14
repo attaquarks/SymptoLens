@@ -12,7 +12,10 @@ const Help: React.FC = () => {
     <div className="bg-secondary min-h-screen">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <section className="mb-12 text-center max-w-3xl mx-auto">
-          <h1 className="text-3xl sm:text-4xl font-bold text-neutral-800 mb-4">Help & Resources</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-neutral-800 mb-4 flex items-center justify-center">
+            <span className="material-icons text-primary mr-2">help_outline</span>
+            Help & Resources
+          </h1>
           <p className="text-lg text-neutral-600 mb-6">
             Find answers to common questions and learn how to get the most out of SymptoLens.
           </p>
@@ -22,7 +25,10 @@ const Help: React.FC = () => {
           <div className="lg:col-span-2">
             <Card>
               <CardContent className="p-6">
-                <h2 className="text-2xl font-semibold text-neutral-800 mb-6">Frequently Asked Questions</h2>
+                <h2 className="text-2xl font-semibold text-neutral-800 mb-6 flex items-center">
+                  <span className="material-icons text-primary mr-2">question_answer</span>
+                  Frequently Asked Questions
+                </h2>
                 
                 <Accordion type="single" collapsible className="w-full">
                   <AccordionItem value="item-1" className="border-b border-neutral-200 py-2">
@@ -97,7 +103,10 @@ const Help: React.FC = () => {
             
             <Card className="mt-8">
               <CardContent className="p-6">
-                <h2 className="text-2xl font-semibold text-neutral-800 mb-6">How to Use SymptoLens</h2>
+                <h2 className="text-2xl font-semibold text-neutral-800 mb-6 flex items-center">
+                  <span className="material-icons text-primary mr-2">tips_and_updates</span>
+                  How to Use SymptoLens
+                </h2>
                 
                 <div className="space-y-6">
                   <div>
@@ -164,7 +173,7 @@ const Help: React.FC = () => {
             <Card className="bg-[#45B39D]/10 border-[#45B39D]/30">
               <CardContent className="p-6">
                 <h2 className="text-xl font-semibold text-neutral-800 mb-4 flex items-center">
-                  <span className="material-icons text-primary mr-2">local_hospital</span>
+                  <span className="material-icons text-[#F17D80] mr-2">local_hospital</span>
                   When to Seek Immediate Medical Care
                 </h2>
                 

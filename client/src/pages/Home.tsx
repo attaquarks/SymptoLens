@@ -53,8 +53,13 @@ const Home: React.FC = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Intro Section */}
         <section className="mb-12 text-center max-w-3xl mx-auto">
-          <h1 className="text-3xl sm:text-4xl font-bold text-neutral-800 mb-4">AI Powered Symptom Analysis</h1>
-          <p className="text-lg text-neutral-600 mb-6">Describe your symptoms and upload relevant images to get AI-powered insights about potential conditions.</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-neutral-800 mb-4 flex items-center justify-center">
+            <span className="material-icons text-primary mr-2">biotech</span>
+            AI Powered Symptom Analysis
+          </h1>
+          <p className="text-lg text-neutral-600 mb-6">
+            Describe your symptoms and upload relevant images to get AI-powered insights about potential conditions.
+          </p>
           <div className="bg-[#F17D80]/20 border border-[#F17D80] rounded-lg p-4 mb-8">
             <div className="flex items-start">
               <span className="material-icons text-[#F17D80] mr-3 mt-0.5">info</span>

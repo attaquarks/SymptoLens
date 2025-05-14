@@ -6,7 +6,10 @@ const About: React.FC = () => {
     <div className="bg-secondary min-h-screen">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <section className="mb-12 text-center max-w-3xl mx-auto">
-          <h1 className="text-3xl sm:text-4xl font-bold text-neutral-800 mb-4">About SymptoLens</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-neutral-800 mb-4 flex items-center justify-center">
+            <span className="material-icons text-primary mr-2">info</span>
+            About SymptoLens
+          </h1>
           <p className="text-lg text-neutral-600 mb-6">
             Learn more about our mission, technology, and commitment to health education.
           </p>
@@ -49,7 +52,10 @@ const About: React.FC = () => {
             
             <Card>
               <CardContent className="p-6">
-                <h2 className="text-2xl font-semibold text-neutral-800 mb-4">Our Technology</h2>
+                <h2 className="text-2xl font-semibold text-neutral-800 mb-4 flex items-center">
+                  <span className="material-icons text-primary mr-2">biotech</span>
+                  Our Technology
+                </h2>
                 
                 <div className="space-y-6">
                   <div>
@@ -95,7 +101,10 @@ const About: React.FC = () => {
           <div className="lg:col-span-1 space-y-6">
             <Card>
               <CardContent className="p-6">
-                <h2 className="text-xl font-semibold text-neutral-800 mb-4">Our Team</h2>
+                <h2 className="text-xl font-semibold text-neutral-800 mb-4 flex items-center">
+                  <span className="material-icons text-primary mr-2">people</span>
+                  Our Team
+                </h2>
                 
                 <p className="text-neutral-600 mb-6">
                   SymptoLens was developed by a multidisciplinary team of healthcare professionals, AI researchers, 
@@ -166,7 +175,10 @@ const About: React.FC = () => {
             
             <Card>
               <CardContent className="p-6">
-                <h2 className="text-xl font-semibold text-neutral-800 mb-4">Contact Us</h2>
+                <h2 className="text-xl font-semibold text-neutral-800 mb-4 flex items-center">
+                  <span className="material-icons text-primary mr-2">contact_support</span>
+                  Contact Us
+                </h2>
                 
                 <p className="text-neutral-600 mb-4">
                   Have questions or feedback about SymptoLens? We'd love to hear from you.

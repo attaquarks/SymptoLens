@@ -22,33 +22,36 @@ const Header: React.FC = () => {
           <ul className="flex space-x-8">
             <li>
               <Link href="/">
-                <span className={`font-medium cursor-pointer ${
+                <span className={`font-medium cursor-pointer flex items-center ${
                   location === "/" 
                     ? "text-primary" 
                     : "text-neutral-600 hover:text-primary"
                 }`}>
+                  <span className="material-icons text-sm mr-1">home</span>
                   Home
                 </span>
               </Link>
             </li>
             <li>
               <Link href="/about">
-                <span className={`font-medium cursor-pointer ${
+                <span className={`font-medium cursor-pointer flex items-center ${
                   location === "/about" 
                     ? "text-primary" 
                     : "text-neutral-600 hover:text-primary"
                 }`}>
+                  <span className="material-icons text-sm mr-1">info</span>
                   About
                 </span>
               </Link>
             </li>
             <li>
               <Link href="/help">
-                <span className={`font-medium cursor-pointer ${
+                <span className={`font-medium cursor-pointer flex items-center ${
                   location === "/help" 
                     ? "text-primary" 
                     : "text-neutral-600 hover:text-primary"
                 }`}>
+                  <span className="material-icons text-sm mr-1">help_outline</span>
                   Help
                 </span>
               </Link>
