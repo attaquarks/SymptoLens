@@ -135,10 +135,11 @@ export const SymptomForm: React.FC<SymptomFormProps> = ({ onSubmitSuccess, onSub
       };
       
       // Create symptom record and get analysis
-      const response = await apiRequest<SymptomAnalysis>('/api/symptoms', {
-        method: 'POST',
-        body: JSON.stringify(analysisData),
-      });
+      const response = await apiRequest(
+        'POST',
+        '/api/symptoms',
+        analysisData
+      );
       
       if (response) {
         onSubmitSuccess(response);
