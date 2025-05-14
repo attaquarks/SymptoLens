@@ -62,7 +62,40 @@ export class KnowledgeBase {
         symptoms: ["fever", "cough", "sore throat", "body aches", "fatigue", "chills", "headache"],
         visualCues: [],
         urgency: "medium",
-        recommendation: "Rest, drink fluids, and consider over-the-counter pain relievers. See a doctor if symptoms are severe or if you are in a high-risk group."
+        recommendedActions: ["Rest", "Stay hydrated", "Take over-the-counter pain relievers"],
+        symptomsRelationships: {
+          required: ["fever", "fatigue"],
+          commonly_together: ["fever", "body aches", "chills"],
+          rarely_together: ["fever", "no respiratory symptoms"]
+        }
+      },
+      {
+        id: 4,
+        name: "Migraine",
+        description: "A neurological condition causing severe headaches, often with visual disturbances and nausea.",
+        symptoms: ["severe headache", "nausea", "light sensitivity", "vision changes", "dizziness"],
+        visualCues: ["facial pallor", "squinting"],
+        urgency: "medium",
+        recommendedActions: ["Rest in dark room", "Take prescribed medication"],
+        symptomsRelationships: {
+          required: ["severe headache"],
+          commonly_together: ["light sensitivity", "nausea"],
+          rarely_together: ["severe headache", "no sensitivity symptoms"]
+        }
+      },
+      {
+        id: 5,
+        name: "Bronchitis",
+        description: "Inflammation of the bronchial tubes that carry air to and from the lungs.",
+        symptoms: ["persistent cough", "chest congestion", "fatigue", "mild fever", "shortness of breath"],
+        visualCues: [],
+        urgency: "medium",
+        recommendedActions: ["Rest", "Use humidifier", "Stay hydrated"],
+        symptomsRelationships: {
+          required: ["persistent cough"],
+          commonly_together: ["chest congestion", "shortness of breath"],
+          rarely_together: ["persistent cough", "no respiratory symptoms"]
+        }
       },
       {
         id: 2,
