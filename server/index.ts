@@ -6,7 +6,15 @@ import { setupVite, serveStatic, log } from "./vite";
 const app = express();
 
 // Initialize database
-seedMedicalConditions().catch(console.error);
+import { runMigrations } from './db/migrations';
+(async () => {
+  try {
+    await runMigrations();
+    await seedMedicalConditions();
+  } catch (error) {
+    console.error('Database initialization error:', error);
+  }
+})();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
