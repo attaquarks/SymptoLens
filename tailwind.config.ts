@@ -4,10 +4,6 @@ export default {
   darkMode: ["class"],
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {
-    fontFamily: {
-      sans: ["Roboto", "ui-sans-serif", "system-ui", "sans-serif"],
-      heading: ["Montserrat", "ui-sans-serif", "system-ui", "sans-serif"],
-    },
     extend: {
       borderRadius: {
         lg: "var(--radius)",
@@ -15,18 +11,6 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       colors: {
-        neutral: {
-          50: "#fafafa",
-          100: "#f5f5f5",
-          200: "#e5e5e5",
-          300: "#d4d4d4",
-          400: "#a3a3a3",
-          500: "#737373",
-          600: "#525252",
-          700: "#404040",
-          800: "#262626",
-          900: "#171717",
-        },
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {
@@ -40,8 +24,6 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
-          dark: "hsl(215, 90%, 44%)",
-          light: "hsl(207, 90%, 64%)",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -54,15 +36,10 @@ export default {
         accent: {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
-          dark: "hsl(122, 38.5%, 26.3%)",
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
-        },
-        warning: {
-          DEFAULT: "hsl(35, 91.2%, 55.3%)",
-          foreground: "hsl(60, 9.1%, 97.8%)",
         },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

@@ -1,8 +1,7 @@
-import { pgTable, text, serial, integer, boolean, json, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, jsonb, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Users table
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -14,43 +13,56 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
 });
 
-// Symptom Analysis table
-export const symptomAnalyses = pgTable("symptom_analyses", {
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
+
+// Symptom analysis table
+export const symptoms = pgTable("symptoms", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id),
-  textSymptoms: text("text_symptoms").notNull(),
-  imageId: text("image_id"),
-  imageDescription: text("image_description"),
-  patientAge: integer("patient_age"),
-  patientGender: text("patient_gender"),
-  results: json("results").notNull(),
+  description: text("description").notNull(),
+  duration: text("duration"),
+  severity: text("severity"),
+  bodyLocation: text("body_location"),
+  uploadedImages: jsonb("uploaded_images").$type<string[]>(), // Array of image paths
+  analysis: jsonb("analysis").$type<SymptomAnalysis>(), // Structured analysis result
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertSymptomAnalysisSchema = createInsertSchema(symptomAnalyses).omit({
+export const insertSymptomSchema = createInsertSchema(symptoms).omit({
   id: true,
+  analysis: true,
   createdAt: true,
 });
 
-// Medical Condition Reference table
-export const medicalConditions = pgTable("medical_conditions", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull().unique(),
-  description: text("description").notNull(),
-  symptoms: json("symptoms").notNull(),
-  additionalInfo: text("additional_info"),
-  recommendedActions: json("recommended_actions"),
+export type InsertSymptom = z.infer<typeof insertSymptomSchema>;
+export type Symptom = typeof symptoms.$inferSelect;
+
+// Structured analysis result type
+export interface SymptomAnalysis {
+  potentialConditions: PotentialCondition[];
+  nextSteps: NextStep[];
+}
+
+export interface PotentialCondition {
+  name: string;
+  description: string;
+  relevance: 'low' | 'medium' | 'high';
+  symptoms: string[];
+  learnMoreUrl?: string;
+}
+
+export interface NextStep {
+  type: 'consult' | 'general';
+  title: string;
+  description: string;
+  suggestions?: string[];
+}
+
+// Form validation schema with more specific validations
+export const symptomFormSchema = insertSymptomSchema.extend({
+  description: z.string().min(10, "Please provide a more detailed description of your symptoms"),
+  duration: z.string().optional(),
+  severity: z.string().optional(),
+  bodyLocation: z.string().optional(),
+  uploadedImages: z.array(z.string()).optional(),
 });
-
-export const insertMedicalConditionSchema = createInsertSchema(medicalConditions).omit({
-  id: true,
-});
-
-export type User = typeof users.$inferSelect;
-export type InsertUser = z.infer<typeof insertUserSchema>;
-
-export type SymptomAnalysis = typeof symptomAnalyses.$inferSelect;
-export type InsertSymptomAnalysis = z.infer<typeof insertSymptomAnalysisSchema>;
-
-export type MedicalCondition = typeof medicalConditions.$inferSelect;
-export type InsertMedicalCondition = z.infer<typeof insertMedicalConditionSchema>;

@@ -1,127 +1,70 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import multer from "multer";
-import path from "path";
-import { analyzeSymptomsWithImage } from "./services/symptom-analyzer";
-import { randomUUID } from "crypto";
-import fs from "fs";
-
-// Configure multer for handling file uploads
-const upload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      const uploadDir = path.join(process.cwd(), "uploads");
-      
-      // Create uploads directory if it doesn't exist
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-      
-      cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-      const uniqueSuffix = `${randomUUID()}`;
-      const extension = path.extname(file.originalname);
-      cb(null, `${uniqueSuffix}${extension}`);
-    },
-  }),
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedMimeTypes = ["image/jpeg", "image/png", "image/heic"];
-    if (allowedMimeTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error("Invalid file type. Only JPEG, PNG, and HEIC images are allowed."));
-    }
-  },
-});
+import { insertSymptomSchema, type SymptomAnalysis } from "@shared/schema";
+import { z } from "zod";
+import { analyzeSymptoms } from "./services/aiService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Sample API to check if the server is running
-  app.get("/api/health", (req, res) => {
-    res.json({ status: "ok" });
-  });
-
-  // API endpoint for symptom analysis
-  app.post(
-    "/api/analyze", 
-    upload.single("image"), 
-    async (req, res) => {
-      try {
-        const { description, age, gender, imageDescription } = req.body;
-        
-        if (!description) {
-          return res.status(400).json({ error: "Symptom description is required" });
-        }
-        
-        // Get the uploaded image path if exists
-        const imagePath = req.file?.path;
-        
-        // Analyze symptoms
-        const results = await analyzeSymptomsWithImage({
-          textSymptoms: description,
-          imagePath,
-          imageDescription: imageDescription || "",
-          patientAge: parseInt(age) || 0,
-          patientGender: gender || "unknown",
+  // Submit symptom data endpoint
+  app.post("/api/symptoms", async (req: Request, res: Response) => {
+    try {
+      // Validate the incoming data
+      const validatedData = insertSymptomSchema.parse(req.body);
+      
+      // Create the symptom record
+      const symptom = await storage.createSymptom(validatedData);
+      
+      // Perform analysis using our multimodal AI and knowledge base services
+      const analysis = await analyzeSymptoms({
+        description: validatedData.description,
+        duration: validatedData.duration || undefined,
+        severity: validatedData.severity || undefined,
+        bodyLocation: validatedData.bodyLocation || undefined,
+        images: validatedData.uploadedImages ? 
+          Array.isArray(validatedData.uploadedImages) ? 
+            validatedData.uploadedImages : [validatedData.uploadedImages]
+          : []
+      });
+      
+      // Update the stored symptom with the analysis
+      await storage.updateSymptomAnalysis(symptom.id, analysis);
+      
+      // Return the analysis
+      return res.status(200).json(analysis);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid input data", 
+          errors: error.errors 
         });
-        
-        // Store the analysis in the database if a user is logged in
-        // This would require authentication middleware
-        
-        // Return the results
-        res.json(results);
-      } catch (error: any) {
-        console.error("Error analyzing symptoms:", error);
-        res.status(500).json({ error: error.message || "An error occurred during analysis" });
-      }
-    }
-  );
-
-  // User registration endpoint
-  app.post("/api/users/register", async (req, res) => {
-    try {
-      const { username, password } = req.body;
-      
-      // Validate input
-      if (!username || !password) {
-        return res.status(400).json({ error: "Username and password are required" });
       }
       
-      // Check if user already exists
-      const existingUser = await storage.getUserByUsername(username);
-      if (existingUser) {
-        return res.status(400).json({ error: "Username already exists" });
-      }
-      
-      // Create the user
-      const user = await storage.createUser({ username, password });
-      
-      // Don't return the password
-      const { password: _, ...userWithoutPassword } = user;
-      
-      res.status(201).json(userWithoutPassword);
-    } catch (error: any) {
-      console.error("Error registering user:", error);
-      res.status(500).json({ error: error.message || "An error occurred during registration" });
+      console.error("Error creating symptom:", error);
+      return res.status(500).json({ message: "Failed to process symptom data" });
     }
   });
 
-  // Get medical conditions reference data
-  app.get("/api/medical-conditions", async (req, res) => {
+  // Get symptom by id
+  app.get("/api/symptoms/:id", async (req: Request, res: Response) => {
     try {
-      const conditions = await storage.getAllMedicalConditions();
-      res.json(conditions);
-    } catch (error: any) {
-      console.error("Error fetching medical conditions:", error);
-      res.status(500).json({ error: error.message || "An error occurred while fetching conditions" });
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid symptom ID" });
+      }
+      
+      const symptom = await storage.getSymptom(id);
+      if (!symptom) {
+        return res.status(404).json({ message: "Symptom not found" });
+      }
+      
+      return res.status(200).json(symptom);
+    } catch (error) {
+      console.error("Error fetching symptom:", error);
+      return res.status(500).json({ message: "Failed to retrieve symptom" });
     }
   });
 
   const httpServer = createServer(app);
-
   return httpServer;
 }

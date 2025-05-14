@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -13,29 +15,18 @@
   --card-foreground: 20 14.3% 4.1%;
   --border: 20 5.9% 90%;
   --input: 20 5.9% 90%;
-  --primary: 207 90% 54%;
+  --primary: 168 46% 49%; /* Soft Teal (#45B39D) */
   --primary-foreground: 211 100% 99%;
-  --secondary: 195 83.3% 48.2%;
-  --secondary-foreground: 211 100% 99%;
-  --accent: 122 38.5% 36.3%;
-  --accent-foreground: 211 100% 99%;
+  --secondary: 210 20% 96%; /* Warm Gray (#F4F6F8) */
+  --secondary-foreground: 24 9.8% 10%;
+  --accent: 359 84% 72%; /* Coral (#F17D80) */
+  --accent-foreground: 0 0% 100%;
+  --accent2: 37 91% 71%; /* Soft Yellow (#F8C471) */
+  --accent2-foreground: 39 100% 25%;
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 60 9.1% 97.8%;
   --ring: 20 14.3% 4.1%;
   --radius: 0.5rem;
-  --chart-1: 207 90% 54%;
-  --chart-2: 195 83.3% 48.2%;
-  --chart-3: 122 38.5% 36.3%;
-  --chart-4: 0 84.2% 60.2%;
-  --chart-5: 35 91.2% 55.3%;
-  --sidebar-background: 0 0% 100%;
-  --sidebar-foreground: 20 14.3% 4.1%;
-  --sidebar-primary: 207 90% 54%;
-  --sidebar-primary-foreground: 211 100% 99%;
-  --sidebar-accent: 122 38.5% 36.3%;
-  --sidebar-accent-foreground: 211 100% 99%;
-  --sidebar-border: 20 5.9% 90%;
-  --sidebar-ring: 20 14.3% 4.1%;
 }
 
 .dark {
@@ -49,16 +40,17 @@
   --card-foreground: 0 0% 98%;
   --border: 240 3.7% 15.9%;
   --input: 240 3.7% 15.9%;
-  --primary: 207 90% 54%;
+  --primary: 168 46% 49%; /* Soft Teal (#45B39D) */
   --primary-foreground: 211 100% 99%;
-  --secondary: 195 83.3% 48.2%;
-  --secondary-foreground: 211 100% 99%;
-  --accent: 122 38.5% 36.3%;
-  --accent-foreground: 211 100% 99%;
+  --secondary: 210 20% 96%; /* Warm Gray (#F4F6F8) */
+  --secondary-foreground: 0 0% 98%;
+  --accent: 359 84% 72%; /* Coral (#F17D80) */
+  --accent-foreground: 0 0% 100%;
+  --accent2: 37 91% 71%; /* Soft Yellow (#F8C471) */
+  --accent2-foreground: 39 100% 25%;
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 0 0% 98%;
   --ring: 240 4.9% 83.9%;
-  --radius: 0.5rem;
 }
 
 @layer base {
@@ -67,54 +59,25 @@
   }
 
   body {
-    @apply font-sans antialiased bg-neutral-100 text-foreground;
-  }
-  
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-heading font-medium text-neutral-900;
+    @apply font-sans antialiased bg-[#F4F6F8] text-foreground;
   }
 }
 
-@layer components {
-  .confidence-bar {
-    @apply h-2 rounded-full bg-neutral-200;
-  }
-  
-  .confidence-level {
-    @apply h-2 rounded-full;
-  }
-  
-  .step-connector {
-    @apply h-0.5 bg-neutral-300;
-  }
-  
-  .step-connector.active {
-    @apply bg-primary;
-  }
-  
-  .step-circle {
-    @apply w-6 h-6 rounded-full flex items-center justify-center bg-neutral-300 text-white text-xs;
-  }
-  
-  .step-circle.active {
-    @apply bg-primary;
-  }
-  
-  .step-circle.completed {
-    @apply bg-accent;
-  }
+/* Animation classes */
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
 }
 
-@font-face {
-  font-family: 'Montserrat';
-  font-style: normal;
-  font-weight: 400;
-  src: url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-@font-face {
-  font-family: 'Roboto';
-  font-style: normal;
-  font-weight: 400;
-  src: url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+.slide-up {
+  animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
