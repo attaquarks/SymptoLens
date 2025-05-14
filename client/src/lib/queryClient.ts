@@ -13,14 +13,14 @@ export async function apiRequest(
   data?: unknown | undefined,
 ): Promise<Response> {
   const res = await fetch(url, {
-    method,
+    method: method,
     headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
 
   await throwIfResNotOk(res);
-  return res;
+  return res.json();
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
