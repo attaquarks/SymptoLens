@@ -145,11 +145,17 @@ function getDefaultResponse(input: AnalysisInput): SymptomAnalysis {
 /**
  * Analyzes text with Gemini to determine possible conditions
  */
-async function getGeminiAnalysis(description: string) {
+async function getGeminiAnalysis(description: string, retryCount = 0, maxRetries = 3) {
   try {
     if (!process.env.GEMINI_API_KEY) {
       console.warn("Gemini API key not found, skipping AI analysis");
       return [];
+    }
+
+    // Exponential backoff delay
+    if (retryCount > 0) {
+      const delay = Math.min(Math.pow(2, retryCount) * 1000, 45000); // Max 45s delay
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
 
     // Configure the generative model
@@ -233,7 +239,11 @@ async function getGeminiAnalysis(description: string) {
       console.error("Raw response:", responseText);
       return [];
     }
-  } catch (error) {
+  } catch (error: any) {
+    if (error.status === 429 && retryCount < maxRetries) {
+      console.warn(`Rate limit hit, retry ${retryCount + 1} of ${maxRetries}`);
+      return getGeminiAnalysis(description, retryCount + 1, maxRetries);
+    }
     console.error("Error in Gemini analysis:", error);
     return [];
   }
