@@ -54,13 +54,24 @@ async function getHuggingFaceAnalysis(description: string) {
 
 function processBertResults(results: any) {
   const conditions = [];
-  // Process BERT model output into standardized format
-  for (const prediction of results) {
-    conditions.push({
-      name: prediction.label,
-      score: prediction.score,
-      relevance: prediction.score > 0.7 ? "high" : prediction.score > 0.5 ? "medium" : "low"
-    });
+  
+  // Handle error response
+  if (results.error) {
+    console.error("HuggingFace API error:", results.error);
+    return conditions;
+  }
+
+  // Ensure results is an array
+  const predictions = Array.isArray(results) ? results : [results];
+  
+  for (const prediction of predictions) {
+    if (prediction && prediction.label) {
+      conditions.push({
+        name: prediction.label,
+        score: prediction.score || 0.5,
+        relevance: (prediction.score || 0.5) > 0.7 ? "high" : (prediction.score || 0.5) > 0.5 ? "medium" : "low"
+      });
+    }
   }
   return conditions;
 }
