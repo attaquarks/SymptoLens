@@ -173,9 +173,12 @@ export class KnowledgeBase {
     const condition = await this.getConditionByName(conditionName);
     if (!condition) return [];
     
+    const symptoms = condition.symptoms || [];
+    const visualCues = condition.visualCues || [];
+    
     const allConditionFactors = [
-      ...condition.symptoms,
-      ...condition.visualCues
+      ...symptoms,
+      ...visualCues
     ];
     
     // Find all matches
