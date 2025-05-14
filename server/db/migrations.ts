@@ -5,8 +5,10 @@ import * as schema from '@shared/schema';
 export async function runMigrations() {
   try {
     // Create medical_conditions table
+    // Drop and recreate approach for clean migration
     await db.execute(`
-      CREATE TABLE IF NOT EXISTS medical_conditions (
+      DROP TABLE IF EXISTS medical_conditions CASCADE;
+      CREATE TABLE medical_conditions (
         id SERIAL PRIMARY KEY,
         name TEXT NOT NULL UNIQUE,
         description TEXT NOT NULL,

@@ -57,12 +57,12 @@ export async function seedMedicalConditions() {
   }
   
   try {
-    // Check if there are already conditions in the database
-    const existingConditions = await db.select().from(schema.medicalConditions).limit(1);
-    
-    if (existingConditions && existingConditions.length > 0) {
-      console.log('Medical conditions already seeded, skipping...');
-      return;
+    // Delete existing conditions before seeding
+    try {
+      await db.delete(schema.medicalConditions);
+      console.log('Cleared existing medical conditions for fresh seed');
+    } catch (err) {
+      console.warn('Error clearing medical conditions:', err);
     }
     
     // Define default medical conditions from the knowledge base
