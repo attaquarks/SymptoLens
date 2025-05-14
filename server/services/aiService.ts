@@ -17,13 +17,43 @@ export async function analyzeSymptoms(input: AnalysisInput): Promise<SymptomAnal
     `;
 
     // Get analysis from both Hugging Face and knowledge base
-    const [aiAnalysis, kbConditions] = await Promise.all([
-      getHuggingFaceAnalysis(fullDescription),
-      getKnowledgeBaseAnalysis(input)
-    ]);
+    // Get analysis primarily from knowledge base if AI service fails
+    let aiAnalysis = [];
+    try {
+      aiAnalysis = await getHuggingFaceAnalysis(fullDescription);
+    } catch (error) {
+      console.warn("AI analysis failed, falling back to knowledge base:", error);
+    }
+    
+    const kbConditions = await getKnowledgeBaseAnalysis(input);
 
     // Combine and rank conditions
     const combinedConditions = mergePredictions(aiAnalysis, kbConditions);
+
+    function mergePredictions(aiPreds: any[], kbPreds: any[]): PotentialCondition[] {
+      const merged = new Map<string, PotentialCondition>();
+      
+      // Add KB predictions first as base
+      for (const kbPred of kbPreds) {
+        merged.set(kbPred.name.toLowerCase(), kbPred);
+      }
+      
+      // Enhance with AI predictions
+      for (const aiPred of aiPreds) {
+        const key = aiPred.name.toLowerCase();
+        if (merged.has(key)) {
+          // Combine scores if condition exists in both
+          const existing = merged.get(key)!;
+          existing.score = Math.max(existing.score || 0, aiPred.score || 0);
+        } else {
+          // Add new AI prediction
+          merged.set(key, aiPred);
+        }
+      }
+      
+      return Array.from(merged.values())
+        .sort((a, b) => (b.score || 0) - (a.score || 0));
+    }
 
     return {
       potentialConditions: combinedConditions,
