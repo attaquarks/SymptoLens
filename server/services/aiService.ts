@@ -1,10 +1,11 @@
-import OpenAI from "openai";
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 import { SymptomAnalysis, PotentialCondition, NextStep } from "@shared/schema";
 import { knowledgeBase } from './knowledgeBase';
 
-// Initialize OpenAI client
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-// The newest OpenAI model is "gpt-4o" which was released May 13, 2024. Do not change this unless explicitly requested by the user
+// Initialize Gemini AI client
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+// The model to use - Gemini-1.5-pro is their most capable model
+const MODEL_NAME = "gemini-1.5-pro";
 
 // Define the input structure
 interface AnalysisInput {
@@ -142,14 +143,37 @@ function getDefaultResponse(input: AnalysisInput): SymptomAnalysis {
 }
 
 /**
- * Analyzes text with OpenAI to determine possible conditions
+ * Analyzes text with Gemini to determine possible conditions
  */
-async function getOpenAIAnalysis(description: string) {
+async function getGeminiAnalysis(description: string) {
   try {
-    if (!process.env.OPENAI_API_KEY) {
-      console.warn("OpenAI API key not found, skipping AI analysis");
+    if (!process.env.GEMINI_API_KEY) {
+      console.warn("Gemini API key not found, skipping AI analysis");
       return [];
     }
+
+    // Configure the generative model
+    const model = genAI.getGenerativeModel({
+      model: MODEL_NAME,
+      safetySettings: [
+        {
+          category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+      ],
+    });
     
     const prompt = `
       As a medical education AI, analyze the following symptoms and determine the most likely conditions based on medical knowledge.
@@ -168,41 +192,49 @@ async function getOpenAIAnalysis(description: string) {
       ]
       
       Include only up to 5 of the most relevant conditions. The score should represent how confident you are in this assessment.
+      
+      IMPORTANT: Only respond with the JSON array and nothing else. Do not add any markdown formatting, extra explanation, or other text.
     `;
     
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o", 
-      messages: [
-        {
-          role: "system", 
-          content: "You are a medical education assistant providing information about possible conditions based on symptoms. You only provide educational information, not medical advice or diagnosis."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      response_format: { type: "json_object" }
-    });
+    const systemPrompt = "You are a medical education assistant providing information about possible conditions based on symptoms. You only provide educational information, not medical advice or diagnosis. Always respond in properly formatted JSON.";
     
-    const responseText = response.choices[0].message.content || '[]';
+    const result = await model.generateContent({
+      contents: [
+        { role: "user", parts: [{ text: systemPrompt }] },
+        { role: "model", parts: [{ text: "I understand. I'll provide educational information about possible conditions based on symptoms in JSON format without giving medical advice." }] },
+        { role: "user", parts: [{ text: prompt }] }
+      ],
+    });
+
+    const response = result.response;
+    const responseText = response.text().trim();
     
     try {
-      const jsonResponse = JSON.parse(responseText);
+      // Clean up response text to ensure it's valid JSON
+      let jsonText = responseText;
+      // Remove markdown code blocks if present
+      if (jsonText.startsWith("```json")) {
+        jsonText = jsonText.replace(/```json\s*/, "").replace(/\s*```\s*$/, "");
+      } else if (jsonText.startsWith("```")) {
+        jsonText = jsonText.replace(/```\s*/, "").replace(/\s*```\s*$/, "");
+      }
+      
+      const jsonResponse = JSON.parse(jsonText);
       if (Array.isArray(jsonResponse)) {
         return jsonResponse;
       } else if (jsonResponse && Array.isArray(jsonResponse.conditions)) {
         return jsonResponse.conditions;
       } else {
-        console.warn("Unexpected OpenAI response format:", jsonResponse);
+        console.warn("Unexpected Gemini response format:", jsonResponse);
         return [];
       }
     } catch (error) {
-      console.error("Failed to parse OpenAI response:", error);
+      console.error("Failed to parse Gemini response:", error);
+      console.error("Raw response:", responseText);
       return [];
     }
   } catch (error) {
-    console.error("Error in OpenAI analysis:", error);
+    console.error("Error in Gemini analysis:", error);
     return [];
   }
 }
@@ -269,13 +301,36 @@ function mergePredictions(aiPreds: any[], kbPreds: any[]): PotentialCondition[] 
  */
 async function generateNextSteps(input: AnalysisInput, conditions: PotentialCondition[]): Promise<NextStep[]> {
   try {
-    if (!process.env.OPENAI_API_KEY || conditions.length === 0) {
+    if (!process.env.GEMINI_API_KEY || conditions.length === 0) {
       return getDefaultNextSteps();
     }
     
     const highestUrgency = conditions[0]?.urgency || 'low';
     
-    // Use OpenAI to generate personalized next steps
+    // Configure the generative model
+    const model = genAI.getGenerativeModel({
+      model: MODEL_NAME,
+      safetySettings: [
+        {
+          category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+      ],
+    });
+    
+    // Use Gemini to generate personalized next steps
     const prompt = `
       Based on the following patient information and potential conditions, suggest appropriate next steps.
       Format your response as JSON with an array of objects, each containing type ('consult' or 'general'), title, description, and suggestions array.
@@ -310,40 +365,49 @@ async function generateNextSteps(input: AnalysisInput, conditions: PotentialCond
       ]
       
       Include at least two next steps - one for consultation and one for general self-care.
+      
+      IMPORTANT: Only respond with the JSON array and nothing else. Do not add any markdown formatting, extra explanation, or other text.
     `;
     
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: "You are a medical education assistant providing guidance based on symptom analysis. Provide educational information only, not medical advice."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
+    const systemPrompt = "You are a medical education assistant providing guidance based on symptom analysis. You provide educational information only, not medical advice. Always respond in properly formatted JSON.";
+    
+    const result = await model.generateContent({
+      contents: [
+        { role: "user", parts: [{ text: systemPrompt }] },
+        { role: "model", parts: [{ text: "I understand. I'll provide educational guidance based on symptom analysis in JSON format without giving medical advice." }] },
+        { role: "user", parts: [{ text: prompt }] }
       ],
-      response_format: { type: "json_object" }
     });
     
-    const content = response.choices[0].message.content || '';
+    const response = result.response;
+    const content = response.text().trim();
     
     try {
-      const parsed = JSON.parse(content);
+      // Clean up response text to ensure it's valid JSON
+      let jsonText = content;
+      // Remove markdown code blocks if present
+      if (jsonText.startsWith("```json")) {
+        jsonText = jsonText.replace(/```json\s*/, "").replace(/\s*```\s*$/, "");
+      } else if (jsonText.startsWith("```")) {
+        jsonText = jsonText.replace(/```\s*/, "").replace(/\s*```\s*$/, "");
+      }
+      
+      const parsed = JSON.parse(jsonText);
       if (Array.isArray(parsed)) {
         return parsed;
       } else if (parsed && Array.isArray(parsed.nextSteps)) {
         return parsed.nextSteps;
       } else {
+        console.warn("Unexpected Gemini response format for next steps:", parsed);
         return getDefaultNextStepsWithUrgency(highestUrgency);
       }
     } catch (error) {
-      console.error("Error parsing OpenAI response for next steps:", error);
+      console.error("Error parsing Gemini response for next steps:", error);
+      console.error("Raw response:", content);
       return getDefaultNextStepsWithUrgency(highestUrgency);
     }
   } catch (error) {
-    console.error("Error generating next steps:", error);
+    console.error("Error generating next steps with Gemini:", error);
     return getDefaultNextSteps();
   }
 }
@@ -361,12 +425,12 @@ export async function analyzeSymptoms(input: AnalysisInput): Promise<SymptomAnal
       ${input.bodyLocation ? `Location: ${input.bodyLocation}` : ''}
     `;
 
-    // Get analysis from both OpenAI and knowledge base
+    // Get analysis from both Gemini and knowledge base
     let aiAnalysis = [];
     try {
-      aiAnalysis = await getOpenAIAnalysis(fullDescription);
+      aiAnalysis = await getGeminiAnalysis(fullDescription);
     } catch (error) {
-      console.warn("OpenAI analysis failed, falling back to knowledge base:", error);
+      console.warn("Gemini analysis failed, falling back to knowledge base:", error);
     }
     
     const kbConditions = await getKnowledgeBaseAnalysis(input);
