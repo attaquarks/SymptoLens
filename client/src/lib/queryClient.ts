@@ -1,26 +1,32 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { UnauthorizedError } from "./utils";
 
 async function throwIfResNotOk(res: Response) {
+  if (res.status === 401) {
+    throw new UnauthorizedError();
+  }
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    throw new Error(`HTTP error! status: ${res.status}`);
   }
 }
 
-export async function apiRequest(
+export async function apiRequest<T>(
   method: string,
   url: string,
   data?: unknown | undefined,
-): Promise<Response> {
+): Promise<T> {
   const res = await fetch(url, {
     method: method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers: {
+      ...(data ? { "Content-Type": "application/json" } : {}),
+    },
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
 
   await throwIfResNotOk(res);
-  return res.json();
+  const responseData = await res.json();
+  return responseData as T;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
