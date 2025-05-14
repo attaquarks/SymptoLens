@@ -1,114 +1,134 @@
+
 import fetch from 'node-fetch';
 import { SymptomAnalysis, PotentialCondition, NextStep } from "@shared/schema";
+import { knowledgeBase } from './knowledgeBase';
 
-interface AnalysisInput {
-  description: string;
-  duration?: string;
-  severity?: string;
-  bodyLocation?: string;
-  images?: string[];
-}
-
-const HUGGING_FACE_API = "https://api-inference.huggingface.co/models/facebook/bart-large-mnli";
+const HUGGING_FACE_API = "https://api-inference.huggingface.co/models/medicalai/ClinicalBERT";
+const HUGGING_FACE_TOKEN = process.env.HUGGING_FACE_TOKEN;
 
 export async function analyzeSymptoms(input: AnalysisInput): Promise<SymptomAnalysis> {
   try {
-    // Construct analysis prompt
-    const prompt = `Analyze these medical symptoms:
-    Description: ${input.description}
-    ${input.duration ? `Duration: ${input.duration}` : ''}
-    ${input.severity ? `Severity: ${input.severity}` : ''}
-    ${input.bodyLocation ? `Body Location: ${input.bodyLocation}` : ''}`;
+    // Combine all input data into a comprehensive prompt
+    const fullDescription = `
+      Symptoms: ${input.description}
+      ${input.duration ? `Duration: ${input.duration}` : ''}
+      ${input.severity ? `Severity: ${input.severity}` : ''}
+      ${input.bodyLocation ? `Location: ${input.bodyLocation}` : ''}
+    `;
 
-    // Get basic analysis using Hugging Face
-    const analysis = await getBasicAnalysis(prompt);
+    // Get analysis from both Hugging Face and knowledge base
+    const [aiAnalysis, kbConditions] = await Promise.all([
+      getHuggingFaceAnalysis(fullDescription),
+      getKnowledgeBaseAnalysis(input)
+    ]);
 
-    // Return formatted response
+    // Combine and rank conditions
+    const combinedConditions = mergePredictions(aiAnalysis, kbConditions);
+
     return {
-      potentialConditions: analysis.conditions,
-      nextSteps: getDefaultNextSteps(),
+      potentialConditions: combinedConditions,
+      nextSteps: determineNextSteps(combinedConditions),
       disclaimer: "This information is for educational purposes only and should not replace professional medical advice.",
-      extractedTextualSymptoms: analysis.symptoms,
+      extractedTextualSymptoms: extractSymptoms(input.description),
       userInputText: input.description
     };
   } catch (error) {
     console.error("Error in symptom analysis:", error);
-    return {
-      potentialConditions: [],
-      nextSteps: getDefaultNextSteps(),
-      disclaimer: "This information is for educational purposes only and should not replace professional medical advice.",
-      extractedTextualSymptoms: [],
-      userInputText: input.description
-    };
+    return getDefaultResponse(input);
   }
 }
 
-async function getBasicAnalysis(prompt: string) {
-  // Use a simpler rule-based approach for demo
-  const commonConditions = [
-    { name: "Common Cold", symptoms: ["runny nose", "cough", "sore throat"] },
-    { name: "Allergies", symptoms: ["sneezing", "itchy eyes", "congestion"] },
-    { name: "Flu", symptoms: ["fever", "body aches", "fatigue"] }
-  ];
+async function getHuggingFaceAnalysis(description: string) {
+  const response = await fetch(HUGGING_FACE_API, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${HUGGING_FACE_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ inputs: description })
+  });
 
-  const matchedConditions = commonConditions
-    .filter(condition => 
-      condition.symptoms.some(symptom => 
-        prompt.toLowerCase().includes(symptom)
-      )
-    )
-    .map(condition => ({
-      name: condition.name,
-      description: `Common symptoms include: ${condition.symptoms.join(", ")}`,
-      relevance: "medium",
-      symptoms: condition.symptoms,
-      score: 0.8,
-      urgency: "low",
-      recommendation: "Monitor symptoms and rest",
-      reasoningNotes: "Based on symptom matching"
-    }));
-
-  return {
-    conditions: matchedConditions.length > 0 ? matchedConditions : [{
-      name: "Unspecified Condition",
-      description: "Unable to determine specific condition",
-      relevance: "low",
-      symptoms: [],
-      score: 0.5,
-      urgency: "medium",
-      recommendation: "Consult a healthcare provider",
-      reasoningNotes: "Insufficient information"
-    }],
-    symptoms: prompt.toLowerCase()
-      .split(" ")
-      .filter(word => 
-        ["pain", "ache", "fever", "cough", "fatigue"].includes(word)
-      )
-  };
+  const result = await response.json();
+  return processBertResults(result);
 }
 
-function getDefaultNextSteps(): NextStep[] {
-  return [
-    {
-      type: "consult",
-      title: "Consult with a healthcare professional",
-      description: "Based on your symptoms, it's recommended to speak with a healthcare provider for proper evaluation.",
-      suggestions: [
-        "Schedule an appointment with your primary care physician",
-        "Consider urgent care if symptoms are severe",
-        "Prepare a list of your symptoms and their duration"
-      ]
-    },
-    {
-      type: "general",
-      title: "Self-care recommendations",
-      description: "While waiting for professional consultation, consider these general measures:",
-      suggestions: [
-        "Rest and avoid strenuous activities",
-        "Stay hydrated",
-        "Monitor your symptoms",
-        "Avoid self-medication without professional guidance"
-      ]
+async function getKnowledgeBaseAnalysis(input: AnalysisInput) {
+  const conditions = await knowledgeBase.getAllConditions();
+  const matchedConditions = [];
+
+  for (const condition of conditions) {
+    const score = await knowledgeBase.calculateSymptomAssociation(
+      condition.name,
+      extractSymptoms(input.description)
+    );
+
+    if (score > 0.3) {
+      matchedConditions.push({
+        name: condition.name,
+        description: condition.description,
+        relevance: score > 0.7 ? "high" : score > 0.5 ? "medium" : "low",
+        symptoms: condition.symptoms || [],
+        score,
+        urgency: determineUrgency(condition, score),
+        recommendation: condition.recommendation
+      });
     }
+  }
+
+  return matchedConditions;
+}
+
+function determineUrgency(condition: any, score: number): string {
+  const severeSymptoms = ['severe pain', 'difficulty breathing', 'chest pain', 'unconscious'];
+  const hasSevereSymptoms = severeSymptoms.some(s => 
+    condition.symptoms?.some((cs: string) => cs.toLowerCase().includes(s))
+  );
+  
+  if (hasSevereSymptoms && score > 0.6) return 'high';
+  if (score > 0.7) return 'medium';
+  return 'low';
+}
+
+function extractSymptoms(description: string): string[] {
+  const commonSymptoms = [
+    'pain', 'ache', 'fever', 'cough', 'fatigue', 'nausea',
+    'headache', 'dizziness', 'weakness', 'swelling'
   ];
+  
+  return description.toLowerCase()
+    .split(/[.,\s]+/)
+    .filter(word => commonSymptoms.some(s => word.includes(s)));
+}
+
+function determineNextSteps(conditions: PotentialCondition[]): NextStep[] {
+  const highestUrgency = conditions[0]?.urgency || 'low';
+  
+  const steps: NextStep[] = [{
+    type: 'consult',
+    title: 'Consult with a healthcare professional',
+    description: highestUrgency === 'high' 
+      ? 'Seek immediate medical attention'
+      : 'Schedule an appointment with your healthcare provider',
+    suggestions: getConsultSuggestions(highestUrgency)
+  }];
+
+  return steps;
+}
+
+function getDefaultResponse(input: AnalysisInput): SymptomAnalysis {
+  return {
+    potentialConditions: [{
+      name: "General Health Concern",
+      description: "Unable to determine specific condition. Please consult a healthcare provider.",
+      relevance: "medium",
+      symptoms: extractSymptoms(input.description),
+      score: 0.5,
+      urgency: "medium",
+      recommendation: "Consult a healthcare provider for proper evaluation"
+    }],
+    nextSteps: getDefaultNextSteps(),
+    disclaimer: "This information is for educational purposes only and should not replace professional medical advice.",
+    extractedTextualSymptoms: extractSymptoms(input.description),
+    userInputText: input.description
+  };
 }
