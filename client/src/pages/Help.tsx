@@ -218,7 +218,10 @@ const Help: React.FC = () => {
             
             <Card>
               <CardContent className="p-6">
-                <h2 className="text-xl font-semibold text-neutral-800 mb-4">Educational Resources</h2>
+                <h2 className="text-xl font-semibold text-neutral-800 mb-4 flex items-center">
+                  <span className="material-icons text-primary mr-2">menu_book</span>
+                  Educational Resources
+                </h2>
                 
                 <div className="space-y-4">
                   <a href="#" className="block p-3 border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors">
@@ -266,7 +269,10 @@ const Help: React.FC = () => {
             
             <Card>
               <CardContent className="p-6">
-                <h2 className="text-xl font-semibold text-neutral-800 mb-4">Need More Help?</h2>
+                <h2 className="text-xl font-semibold text-neutral-800 mb-4 flex items-center">
+                  <span className="material-icons text-primary mr-2">support</span>
+                  Need More Help?
+                </h2>
                 
                 <p className="text-neutral-600 mb-4">
                   If you have questions about using SymptoLens or need additional assistance, our support team is here to help.

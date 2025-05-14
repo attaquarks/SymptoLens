@@ -52,7 +52,10 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
       <div className="bg-white rounded-xl shadow-card p-6 mb-8">
         <div className="flex items-start justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-semibold text-neutral-800 mb-1">Analysis Results</h2>
+            <h2 className="text-2xl font-semibold text-neutral-800 mb-1 flex items-center">
+              <span className="material-icons text-primary mr-2">analytics</span>
+              Analysis Results
+            </h2>
             <p className="text-neutral-500">Based on your description and images</p>
           </div>
           <button
@@ -78,7 +81,10 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
         </div>
         
         <div className="mb-6">
-          <h3 className="text-lg font-medium text-neutral-800 mb-3">Your Reported Symptoms</h3>
+          <h3 className="text-lg font-medium text-neutral-800 mb-3 flex items-center">
+            <span className="material-icons text-primary mr-2">description</span>
+            Your Reported Symptoms
+          </h3>
           <div className="bg-secondary rounded-lg p-4">
             <p className="text-neutral-700">
               {symptomData.description}
@@ -104,7 +110,10 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
         </div>
         
         <div className="mb-8">
-          <h3 className="text-lg font-medium text-neutral-800 mb-4">Potential Related Conditions</h3>
+          <h3 className="text-lg font-medium text-neutral-800 mb-4 flex items-center">
+            <span className="material-icons text-primary mr-2">psychology_alt</span>
+            Potential Related Conditions
+          </h3>
           <p className="text-sm text-neutral-500 mb-4">Based on your symptoms, these conditions might be relevant:</p>
           
           <div className="space-y-4">
@@ -138,7 +147,10 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
         </div>
         
         <div>
-          <h3 className="text-lg font-medium text-neutral-800 mb-4">Recommended Next Steps</h3>
+          <h3 className="text-lg font-medium text-neutral-800 mb-4 flex items-center">
+            <span className="material-icons text-primary mr-2">list_alt</span>
+            Recommended Next Steps
+          </h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {analysis.nextSteps.map((step, index) => (
