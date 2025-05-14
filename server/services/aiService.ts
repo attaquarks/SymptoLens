@@ -1,122 +1,215 @@
-
-import fetch from 'node-fetch';
+import OpenAI from "openai";
 import { SymptomAnalysis, PotentialCondition, NextStep } from "@shared/schema";
 import { knowledgeBase } from './knowledgeBase';
 
-const HUGGING_FACE_API = "https://api-inference.huggingface.co/models/medicalai/ClinicalBERT";
-const HUGGING_FACE_TOKEN = process.env.HUGGING_FACE_TOKEN;
+// Initialize OpenAI client
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// The newest OpenAI model is "gpt-4o" which was released May 13, 2024. Do not change this unless explicitly requested by the user
 
-export async function analyzeSymptoms(input: AnalysisInput): Promise<SymptomAnalysis> {
+// Define the input structure
+interface AnalysisInput {
+  description: string;
+  duration?: string;
+  severity?: string;
+  bodyLocation?: string;
+  images?: string[];
+}
+
+/**
+ * Extract symptom keywords from a text description
+ */
+function extractSymptoms(description: string): string[] {
+  const commonSymptoms = [
+    'pain', 'ache', 'fever', 'cough', 'fatigue', 'nausea',
+    'headache', 'dizziness', 'weakness', 'swelling'
+  ];
+  
+  return description.toLowerCase()
+    .split(/[.,\s]+/)
+    .filter(word => commonSymptoms.some(s => word.includes(s)));
+}
+
+/**
+ * Determine the urgency level of a condition based on symptoms and score
+ */
+function determineUrgency(condition: any, score: number): string {
+  const severeSymptoms = ['severe pain', 'difficulty breathing', 'chest pain', 'unconscious'];
+  const hasSevereSymptoms = severeSymptoms.some(s => 
+    condition.symptoms?.some((cs: string) => cs.toLowerCase().includes(s))
+  );
+  
+  if (hasSevereSymptoms && score > 0.6) return 'high';
+  if (score > 0.7) return 'medium';
+  return 'low';
+}
+
+/**
+ * Get default next steps when other methods fail
+ */
+function getDefaultNextSteps(): NextStep[] {
+  return [
+    {
+      type: 'consult',
+      title: 'Consult Healthcare Provider',
+      description: 'Since we cannot make a confident prediction, please consult a qualified healthcare provider.',
+      suggestions: [
+        'Schedule an appointment with your primary care physician',
+        'Document your symptoms and their duration',
+        'Note any factors that worsen or improve the symptoms'
+      ]
+    },
+    {
+      type: 'general',
+      title: 'General Self-Care',
+      description: 'While waiting to see a healthcare provider, consider these general measures:',
+      suggestions: [
+        'Rest and avoid strenuous activities',
+        'Stay hydrated by drinking plenty of fluids',
+        'Monitor your symptoms and note any changes'
+      ]
+    }
+  ];
+}
+
+/**
+ * Get default next steps with urgency-specific recommendations
+ */
+function getDefaultNextStepsWithUrgency(urgency: string): NextStep[] {
+  // Generate consultation suggestions based on urgency
+  const consultSuggestions = {
+    high: [
+      'Seek immediate medical attention or go to the nearest emergency room',
+      'If applicable, call emergency services',
+      'Have someone accompany you if possible'
+    ],
+    medium: [
+      'Schedule an appointment with your healthcare provider within the next few days',
+      'Prepare a list of your symptoms, their onset, and evolution',
+      'Bring a list of any medications you are currently taking'
+    ],
+    low: [
+      'Schedule a routine appointment with your healthcare provider',
+      'Keep a symptom journal to track changes',
+      'Prepare questions about your symptoms to ask during your appointment'
+    ]
+  };
+  
+  // Use the appropriate suggestions based on urgency
+  const urgencyLevel = urgency === 'high' ? 'high' : urgency === 'medium' ? 'medium' : 'low';
+  
+  return [
+    {
+      type: 'consult',
+      title: 'Consult with a healthcare professional',
+      description: urgencyLevel === 'high' 
+        ? 'Seek immediate medical attention' 
+        : 'Schedule an appointment with your healthcare provider',
+      suggestions: consultSuggestions[urgencyLevel as keyof typeof consultSuggestions]
+    },
+    {
+      type: 'general',
+      title: 'General self-care recommendations',
+      description: 'While waiting for professional consultation, consider these general self-care measures:',
+      suggestions: [
+        'Rest and avoid strenuous activities',
+        'Stay hydrated by drinking plenty of fluids',
+        'Monitor your symptoms and note any changes',
+        'Avoid self-medication without professional guidance'
+      ]
+    }
+  ];
+}
+
+/**
+ * Get default response when analysis fails
+ */
+function getDefaultResponse(input: AnalysisInput): SymptomAnalysis {
+  return {
+    potentialConditions: [{
+      name: "General Health Concern",
+      description: "Unable to determine specific condition. Please consult a healthcare provider.",
+      relevance: "medium",
+      symptoms: extractSymptoms(input.description),
+      score: 0.5,
+      urgency: "medium",
+      recommendation: "Consult a healthcare provider for proper evaluation"
+    }],
+    nextSteps: getDefaultNextSteps(),
+    disclaimer: "This information is for educational purposes only and should not replace professional medical advice.",
+    extractedTextualSymptoms: extractSymptoms(input.description),
+    userInputText: input.description
+  };
+}
+
+/**
+ * Analyzes text with OpenAI to determine possible conditions
+ */
+async function getOpenAIAnalysis(description: string) {
   try {
-    // Combine all input data into a comprehensive prompt
-    const fullDescription = `
-      Symptoms: ${input.description}
-      ${input.duration ? `Duration: ${input.duration}` : ''}
-      ${input.severity ? `Severity: ${input.severity}` : ''}
-      ${input.bodyLocation ? `Location: ${input.bodyLocation}` : ''}
-    `;
-
-    // Get analysis from both Hugging Face and knowledge base
-    // Get analysis primarily from knowledge base if AI service fails
-    let aiAnalysis = [];
-    try {
-      aiAnalysis = await getHuggingFaceAnalysis(fullDescription);
-    } catch (error) {
-      console.warn("AI analysis failed, falling back to knowledge base:", error);
+    if (!process.env.OPENAI_API_KEY) {
+      console.warn("OpenAI API key not found, skipping AI analysis");
+      return [];
     }
     
-    const kbConditions = await getKnowledgeBaseAnalysis(input);
-
-    // Combine and rank conditions
-    const combinedConditions = mergePredictions(aiAnalysis, kbConditions);
-
-    function mergePredictions(aiPreds: any[], kbPreds: any[]): PotentialCondition[] {
-      const merged = new Map<string, PotentialCondition>();
+    const prompt = `
+      As a medical education AI, analyze the following symptoms and determine the most likely conditions based on medical knowledge.
       
-      // Add KB predictions first as base
-      for (const kbPred of kbPreds) {
-        merged.set(kbPred.name.toLowerCase(), kbPred);
-      }
+      Symptoms description: ${description}
       
-      // Enhance with AI predictions
-      for (const aiPred of aiPreds) {
-        const key = aiPred.name.toLowerCase();
-        if (merged.has(key)) {
-          // Combine scores if condition exists in both
-          const existing = merged.get(key)!;
-          existing.score = Math.max(existing.score || 0, aiPred.score || 0);
-        } else {
-          // Add new AI prediction
-          merged.set(key, aiPred);
+      Return the analysis in JSON format as an array of possible conditions with the following structure:
+      [
+        {
+          "name": "Condition Name",
+          "description": "Brief description of the condition",
+          "relevance": "high/medium/low", 
+          "score": 0.0-1.0,
+          "symptoms": ["key symptom 1", "key symptom 2"]
         }
-      }
+      ]
       
-      return Array.from(merged.values())
-        .sort((a, b) => (b.score || 0) - (a.score || 0));
+      Include only up to 5 of the most relevant conditions. The score should represent how confident you are in this assessment.
+    `;
+    
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o", 
+      messages: [
+        {
+          role: "system", 
+          content: "You are a medical education assistant providing information about possible conditions based on symptoms. You only provide educational information, not medical advice or diagnosis."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      response_format: { type: "json_object" }
+    });
+    
+    const responseText = response.choices[0].message.content || '[]';
+    
+    try {
+      const jsonResponse = JSON.parse(responseText);
+      if (Array.isArray(jsonResponse)) {
+        return jsonResponse;
+      } else if (jsonResponse && Array.isArray(jsonResponse.conditions)) {
+        return jsonResponse.conditions;
+      } else {
+        console.warn("Unexpected OpenAI response format:", jsonResponse);
+        return [];
+      }
+    } catch (error) {
+      console.error("Failed to parse OpenAI response:", error);
+      return [];
     }
-
-    return {
-      potentialConditions: combinedConditions,
-      nextSteps: determineNextSteps(combinedConditions),
-      disclaimer: "This information is for educational purposes only and should not replace professional medical advice.",
-      extractedTextualSymptoms: extractSymptoms(input.description),
-      userInputText: input.description
-    };
   } catch (error) {
-    console.error("Error in symptom analysis:", error);
-    return getDefaultResponse(input);
+    console.error("Error in OpenAI analysis:", error);
+    return [];
   }
 }
 
-async function getHuggingFaceAnalysis(description: string) {
-  const response = await fetch(HUGGING_FACE_API, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${HUGGING_FACE_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ inputs: description })
-  });
-
-  const result = await response.json();
-  return processBertResults(result);
-}
-
-function processBertResults(results: any) {
-  const conditions = [];
-  
-  // Handle error response
-  if (results.error) {
-    console.error("HuggingFace API error:", results.error);
-    return conditions;
-  }
-
-  // Ensure results is an array
-  const predictions = Array.isArray(results) ? results : [results];
-  
-  for (const prediction of predictions) {
-    if (prediction && prediction.label) {
-      conditions.push({
-        name: prediction.label,
-        score: prediction.score || 0.5,
-        relevance: (prediction.score || 0.5) > 0.7 ? "high" : (prediction.score || 0.5) > 0.5 ? "medium" : "low"
-      });
-    }
-  }
-  return conditions;
-}
-
-function getDefaultNextSteps(): NextStep[] {
-  return [{
-    type: 'consult',
-    title: 'Consult Healthcare Provider',
-    description: 'Since we cannot make a confident prediction, please consult a qualified healthcare provider.',
-    suggestions: ['Schedule an appointment with your primary care physician',
-                 'Document your symptoms and their duration',
-                 'Note any factors that worsen or improve the symptoms']
-  }];
-}
-
+/**
+ * Get condition predictions from the knowledge base
+ */
 async function getKnowledgeBaseAnalysis(input: AnalysisInput) {
   const conditions = await knowledgeBase.getAllConditions();
   const matchedConditions = [];
@@ -143,57 +236,156 @@ async function getKnowledgeBaseAnalysis(input: AnalysisInput) {
   return matchedConditions;
 }
 
-function determineUrgency(condition: any, score: number): string {
-  const severeSymptoms = ['severe pain', 'difficulty breathing', 'chest pain', 'unconscious'];
-  const hasSevereSymptoms = severeSymptoms.some(s => 
-    condition.symptoms?.some((cs: string) => cs.toLowerCase().includes(s))
-  );
+/**
+ * Merge predictions from multiple sources
+ */
+function mergePredictions(aiPreds: any[], kbPreds: any[]): PotentialCondition[] {
+  const merged = new Map<string, PotentialCondition>();
   
-  if (hasSevereSymptoms && score > 0.6) return 'high';
-  if (score > 0.7) return 'medium';
-  return 'low';
+  // Add KB predictions first as base
+  for (const kbPred of kbPreds) {
+    merged.set(kbPred.name.toLowerCase(), kbPred);
+  }
+  
+  // Enhance with AI predictions
+  for (const aiPred of aiPreds) {
+    const key = aiPred.name.toLowerCase();
+    if (merged.has(key)) {
+      // Combine scores if condition exists in both
+      const existing = merged.get(key)!;
+      existing.score = Math.max(existing.score || 0, aiPred.score || 0);
+    } else {
+      // Add new AI prediction
+      merged.set(key, aiPred);
+    }
+  }
+  
+  return Array.from(merged.values())
+    .sort((a, b) => (b.score || 0) - (a.score || 0));
 }
 
-function extractSymptoms(description: string): string[] {
-  const commonSymptoms = [
-    'pain', 'ache', 'fever', 'cough', 'fatigue', 'nausea',
-    'headache', 'dizziness', 'weakness', 'swelling'
-  ];
-  
-  return description.toLowerCase()
-    .split(/[.,\s]+/)
-    .filter(word => commonSymptoms.some(s => word.includes(s)));
+/**
+ * Generates next steps based on the potential conditions
+ */
+async function generateNextSteps(input: AnalysisInput, conditions: PotentialCondition[]): Promise<NextStep[]> {
+  try {
+    if (!process.env.OPENAI_API_KEY || conditions.length === 0) {
+      return getDefaultNextSteps();
+    }
+    
+    const highestUrgency = conditions[0]?.urgency || 'low';
+    
+    // Use OpenAI to generate personalized next steps
+    const prompt = `
+      Based on the following patient information and potential conditions, suggest appropriate next steps.
+      Format your response as JSON with an array of objects, each containing type ('consult' or 'general'), title, description, and suggestions array.
+      
+      Patient's symptoms: ${input.description}
+      ${input.duration ? `Duration: ${input.duration}` : ''}
+      ${input.severity ? `Severity: ${input.severity}` : ''}
+      ${input.bodyLocation ? `Body location: ${input.bodyLocation}` : ''}
+      
+      Top potential conditions:
+      ${conditions.slice(0, 3).map((condition, index) => `
+        ${index + 1}. ${condition.name} (${condition.relevance} relevance)
+        - Description: ${condition.description}
+        - Key symptoms: ${condition.symptoms.slice(0, 5).join(", ")}
+        - Urgency: ${condition.urgency || 'medium'}
+      `).join('\n')}
+      
+      Provide next steps in this JSON format:
+      [
+        {
+          "type": "consult",
+          "title": "Consult with a healthcare professional",
+          "description": "Based on your symptoms, it's recommended to...",
+          "suggestions": ["Specific action 1", "Specific action 2"]
+        },
+        {
+          "type": "general",
+          "title": "Self-care recommendations",
+          "description": "While waiting for professional consultation...",
+          "suggestions": ["Specific recommendation 1", "Specific recommendation 2"]
+        }
+      ]
+      
+      Include at least two next steps - one for consultation and one for general self-care.
+    `;
+    
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: "You are a medical education assistant providing guidance based on symptom analysis. Provide educational information only, not medical advice."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      response_format: { type: "json_object" }
+    });
+    
+    const content = response.choices[0].message.content || '';
+    
+    try {
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      } else if (parsed && Array.isArray(parsed.nextSteps)) {
+        return parsed.nextSteps;
+      } else {
+        return getDefaultNextStepsWithUrgency(highestUrgency);
+      }
+    } catch (error) {
+      console.error("Error parsing OpenAI response for next steps:", error);
+      return getDefaultNextStepsWithUrgency(highestUrgency);
+    }
+  } catch (error) {
+    console.error("Error generating next steps:", error);
+    return getDefaultNextSteps();
+  }
 }
 
-function determineNextSteps(conditions: PotentialCondition[]): NextStep[] {
-  const highestUrgency = conditions[0]?.urgency || 'low';
-  
-  const steps: NextStep[] = [{
-    type: 'consult',
-    title: 'Consult with a healthcare professional',
-    description: highestUrgency === 'high' 
-      ? 'Seek immediate medical attention'
-      : 'Schedule an appointment with your healthcare provider',
-    suggestions: getConsultSuggestions(highestUrgency)
-  }];
+/**
+ * Main function to analyze symptoms using multimodal AI and knowledge base
+ */
+export async function analyzeSymptoms(input: AnalysisInput): Promise<SymptomAnalysis> {
+  try {
+    // Combine all input data into a comprehensive prompt
+    const fullDescription = `
+      Symptoms: ${input.description}
+      ${input.duration ? `Duration: ${input.duration}` : ''}
+      ${input.severity ? `Severity: ${input.severity}` : ''}
+      ${input.bodyLocation ? `Location: ${input.bodyLocation}` : ''}
+    `;
 
-  return steps;
-}
+    // Get analysis from both OpenAI and knowledge base
+    let aiAnalysis = [];
+    try {
+      aiAnalysis = await getOpenAIAnalysis(fullDescription);
+    } catch (error) {
+      console.warn("OpenAI analysis failed, falling back to knowledge base:", error);
+    }
+    
+    const kbConditions = await getKnowledgeBaseAnalysis(input);
 
-function getDefaultResponse(input: AnalysisInput): SymptomAnalysis {
-  return {
-    potentialConditions: [{
-      name: "General Health Concern",
-      description: "Unable to determine specific condition. Please consult a healthcare provider.",
-      relevance: "medium",
-      symptoms: extractSymptoms(input.description),
-      score: 0.5,
-      urgency: "medium",
-      recommendation: "Consult a healthcare provider for proper evaluation"
-    }],
-    nextSteps: getDefaultNextSteps(),
-    disclaimer: "This information is for educational purposes only and should not replace professional medical advice.",
-    extractedTextualSymptoms: extractSymptoms(input.description),
-    userInputText: input.description
-  };
+    // Combine and rank conditions
+    const combinedConditions = mergePredictions(aiAnalysis, kbConditions);
+
+    // Generate next steps for the user
+    const nextSteps = await generateNextSteps(input, combinedConditions);
+
+    return {
+      potentialConditions: combinedConditions,
+      nextSteps: nextSteps,
+      disclaimer: "This information is for educational purposes only and should not replace professional medical advice.",
+      extractedTextualSymptoms: extractSymptoms(input.description),
+      userInputText: input.description
+    };
+  } catch (error) {
+    console.error("Error in symptom analysis:", error);
+    return getDefaultResponse(input);
+  }
 }
