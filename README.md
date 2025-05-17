@@ -38,7 +38,7 @@ SymptoLens is a modern web application built with React, Express, and TypeScript
   - Demographic plausibility checks
 - Refines and ranks conditions based on medical expertise
 
-### 🔄 Integrated Workflow
+### Integrated Workflow
 
 1. User Input Processing
    - Text and image inputs are analyzed by the AI model
