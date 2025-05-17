@@ -1,121 +1,106 @@
-import React, { useState } from 'react';
-import { SymptomForm } from '@/components/SymptomForm';
-import { AnalysisResults } from '@/components/AnalysisResults';
-import { SymptomAnalysis } from '@shared/schema';
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, BrainCircuit, SearchCheck, BadgeInfo, ThumbsUp } from 'lucide-react';
+import { useState } from "react";
+import AppContainer from "@/components/app-container";
+import SymptomInputCard from "@/components/symptom-input-card";
+import ImageUploadCard from "@/components/image-upload-card";
+import ProcessingScreen from "@/components/processing-screen";
+import ResultsSection from "@/components/results-section";
+import Stepper from "@/components/stepper";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
+import { useSymptomAnalysis } from "@/lib/hooks/use-symptom-analysis";
 
-export const Home: React.FC = () => {
-  const [analysis, setAnalysis] = useState<SymptomAnalysis | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [showingResult, setShowingResult] = useState(false);
+export default function Home() {
+  const [currentStep, setCurrentStep] = useState<number>(1);
+  const {
+    symptomsForm,
+    imageFile,
+    imageDescription,
+    setImageFile,
+    setImageDescription,
+    isAnalyzing,
+    analysisResults,
+    resetAnalysis,
+    analyzeSymptoms,
+  } = useSymptomAnalysis();
 
-  const handleAnalysisSubmit = () => {
-    setIsAnalyzing(true);
+  const handleProceedToImageUpload = () => {
+    setCurrentStep(2);
   };
 
-  const handleAnalysisSuccess = (result: SymptomAnalysis) => {
-    setAnalysis(result);
-    setIsAnalyzing(false);
-    setShowingResult(true);
+  const handleBackToSymptoms = () => {
+    setCurrentStep(1);
   };
 
-  const handleStartNew = () => {
-    setShowingResult(false);
-    setAnalysis(null);
+  const handleAnalyzeSymptoms = async () => {
+    setCurrentStep(3);
+    await analyzeSymptoms();
+    setCurrentStep(4);
+  };
+
+  const handleStartNewAnalysis = () => {
+    resetAnalysis();
+    setCurrentStep(1);
+  };
+
+  const renderCurrentStep = () => {
+    if (currentStep === 1) {
+      return (
+        <div className="grid md:grid-cols-2 gap-8">
+          <SymptomInputCard 
+            symptomsForm={symptomsForm}
+            onContinue={handleProceedToImageUpload}
+          />
+          {/* Second card placeholder for symmetry */}
+          <div className="hidden md:block"></div>
+        </div>
+      );
+    } else if (currentStep === 2) {
+      return (
+        <div className="grid md:grid-cols-2 gap-8">
+          <ImageUploadCard
+            imageFile={imageFile}
+            imageDescription={imageDescription}
+            setImageFile={setImageFile}
+            setImageDescription={setImageDescription}
+            onBack={handleBackToSymptoms}
+            onAnalyze={handleAnalyzeSymptoms}
+          />
+          {/* Second card placeholder for symmetry */}
+          <div className="hidden md:block"></div>
+        </div>
+      );
+    } else if (currentStep === 3) {
+      return <ProcessingScreen />;
+    } else if (currentStep === 4) {
+      return (
+        <ResultsSection
+          results={analysisResults}
+          onNewAnalysis={handleStartNewAnalysis}
+        />
+      );
+    }
   };
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      {/* Hero Section */}
-      {!showingResult && !isAnalyzing && (
-        <section className="py-12 mb-12">
-          <div className="text-center">
-            <div className="flex justify-center mb-4">
-              <div className="bg-primary/10 p-4 rounded-full">
-                <BrainCircuit className="h-12 w-12 text-primary" />
-              </div>
-            </div>
-            <h1 className="text-4xl font-bold tracking-tight mb-4 bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
-              SymptoLens AI Medical Analysis
-            </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-              Describe your symptoms and receive AI-powered educational insights, combining 
-              multimodal analysis with medical knowledge for a comprehensive understanding.
-            </p>
-            <div className="flex flex-wrap justify-center gap-4 mb-8">
-              <div className="flex items-start gap-2 max-w-xs">
-                <SearchCheck className="h-6 w-6 text-primary mt-1" />
-                <div className="text-left">
-                  <h3 className="font-medium">Multimodal Analysis</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Upload images along with text descriptions for more accurate symptom identification
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2 max-w-xs">
-                <BadgeInfo className="h-6 w-6 text-primary mt-1" />
-                <div className="text-left">
-                  <h3 className="font-medium">Medical Knowledge Base</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Analysis validated against a structured repository of medical conditions and symptoms
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2 max-w-xs">
-                <ThumbsUp className="h-6 w-6 text-primary mt-1" />
-                <div className="text-left">
-                  <h3 className="font-medium">Educational Guidance</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Receive personalized next steps and recommendations based on your symptoms
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
+    <AppContainer>
+      <div className="container mx-auto px-4 py-8">
+        <Alert className="bg-neutral-100 border-l-4 border-warning mb-8">
+          <InfoIcon className="h-5 w-5 text-warning" />
+          <AlertTitle className="font-medium text-neutral-800">Medical Disclaimer</AlertTitle>
+          <AlertDescription className="text-neutral-700 text-sm">
+            SymptoLens provides preliminary assessments, not medical diagnoses. Always consult with healthcare professionals for proper medical advice and treatment.
+          </AlertDescription>
+        </Alert>
 
-      {/* Main content */}
-      <div className="max-w-4xl mx-auto">
-        {showingResult ? (
-          <div className="space-y-6">
-            <Button
-              variant="outline"
-              onClick={handleStartNew}
-              className="mb-4"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" /> New Analysis
-            </Button>
-            <AnalysisResults analysis={analysis} />
-          </div>
-        ) : (
-          <div className="space-y-6">
-            <SymptomForm 
-              onSubmitSuccess={handleAnalysisSuccess} 
-              onSubmit={handleAnalysisSubmit}
-            />
-            <AnalysisResults analysis={null} loading={isAnalyzing} />
-          </div>
-        )}
-      </div>
+        <div className="mb-8 hidden md:block">
+          <Stepper 
+            steps={["Symptoms", "Image", "Analysis", "Results"]} 
+            currentStep={currentStep}
+          />
+        </div>
 
-      {/* Disclaimer */}
-      <div className="max-w-4xl mx-auto mt-12 bg-muted/30 p-6 rounded-lg">
-        <h3 className="font-medium text-lg mb-3">Important Disclaimer</h3>
-        <p className="text-muted-foreground mb-3">
-          SymptoLens provides educational information only and is not a substitute for professional medical advice, 
-          diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider 
-          with any questions you may have regarding a medical condition.
-        </p>
-        <p className="text-muted-foreground">
-          Never disregard professional medical advice or delay in seeking it because of something you have 
-          read on this website. If you think you may have a medical emergency, call your doctor or emergency 
-          services immediately.
-        </p>
+        {renderCurrentStep()}
       </div>
-    </div>
+    </AppContainer>
   );
-};
-
-export default Home;
+}
