@@ -89,7 +89,7 @@ SymptoLens is a modern web application built with React, Express, and TypeScript
 - CNN/Vision Transformers for image analysis
 - Medical knowledge base integration
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 SymptoLens/
@@ -108,7 +108,7 @@ SymptoLens/
 └── temp_extraction/     # Temporary file processing
 ```
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -154,7 +154,7 @@ npm run dev
 - `npm run check` - Type checking
 - `npm run db:push` - Update database schema
 
-## 🔒 Security
+## Security
 
 - Secure session management
 - Password hashing
@@ -163,7 +163,7 @@ npm run dev
 - Rate limiting
 
 
-## 📝 License
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
